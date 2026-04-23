@@ -7,6 +7,8 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
+class ApiConfig(BaseModel):
+    router_key: str
 
 class RunConfig(BaseModel):
     host: str = "0.0.0.0"
@@ -76,6 +78,7 @@ class Settings(BaseSettings):
     db: DatabaseConfig
     auth: AuthConfig = AuthConfig()
     access_token: AccessToken
+    api: ApiConfig
 
 
 settings = Settings()

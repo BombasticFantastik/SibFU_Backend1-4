@@ -20,14 +20,30 @@ from typing import Optional, List
 from fastapi_filter.contrib.sqlalchemy import Filter
 #from authentication.user_manager import current_active_user
 from authentication.fastapi_users import current_active_user
-
+from tasks.recipe_tasks import generate_recipe_task
 
 router = APIRouter(
     tags=["Recipe"],
     prefix=settings.url.recipe,
 )
 
+class RecipeGenerateRequest(BaseModel):
+    prompt: str = Field(..., min_length=10, example="Хочу рецепт пасты с курицей и сливочным соусом")
 
+@router.post("/generate", status_code=status.HTTP_202_ACCEPTED)
+async def generate_recipe(
+    request: RecipeGenerateRequest,
+    user: User = Depends(current_active_user),
+):
+    """
+    Эндпоинт для запуска асинхронной генерации рецепта через LLM.
+    """
+    await generate_recipe_task.kiq(
+        prompt=request.prompt, 
+        user_id=user.id
+    )
+    
+    return {"status": "Генерация началась"}
 
 class RecipeBase(BaseModel):
   title: str 
@@ -43,25 +59,6 @@ class IngredientIn(BaseModel):
 
 class IngredientOut(IngredientIn):
     name: str = Field(validation_alias=AliasPath("ingredient", "name"))
-
-#старый метод
-# class RecipeRead(RecipeBase):
-#     id: int
-#     cuisine: CuisineRead | None = None
-#     allergens: list[AllergenRead]
-#     ingredients: list[IngredientOut] = Field(validation_alias='ingredient_associations')
-    
-#     model_config = ConfigDict(from_attributes=True)
-
-#чуть более новый метод
-# class RecipeRead(RecipeBase):
-#     id: int
-#     author_id: int  
-#     author: UserRead  #АВТОР ЦЕЛИКОМ
-#     cuisine: CuisineRead | None = None
-#     allergens: list[AllergenRead]
-#     ingredients: list[IngredientOut] = Field(validation_alias='ingredient_associations')
-#     model_config = ConfigDict(from_attributes=True)
 
 #новый метод
 class RecipeRead(RecipeBase):
